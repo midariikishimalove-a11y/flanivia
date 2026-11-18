@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<title>Baixar vídeo</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --card: #181b22;
+    --borda: #2a2f3a;
+    --texto: #eef0f4;
+    --suave: #9aa3b2;
+    --destaque: #4f8cff;
+    --erro: #ff6b6b;
+    --ok: #4cd08a;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    background: var(--bg);
+    color: var(--texto);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 560px;
+    background: var(--card);
+    border: 1px solid var(--borda);
+    border-radius: 16px;
+    padding: 28px 24px;
+  }
+  h1 { margin: 0 0 6px; font-size: 1.5rem; line-height: 1.25; }
+  p.sub { margin: 0 0 22px; color: var(--suave); font-size: .95rem; }
+  .linha { display: flex; gap: 8px; }
+  input[type="url"] {
+    flex: 1;
+    min-width: 0;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--borda);
+    background: var(--bg);
+    color: var(--texto);
+    font-size: 1rem; /* 16px: evita o zoom automático do iPhone */
+  }
+  input[type="url"]:focus { outline: 2px solid var(--destaque); border-color: transparent; }
+  button {
+    min-height: 48px; /* alvo de toque confortável */
+    padding: 14px 20px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--destaque);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { opacity: .6; cursor: wait; }
+  .colar {
+    background: transparent;
+    border: 1px solid var(--borda);
+    color: var(--suave);
+    padding: 14px 14px;
+  }
+  #salvar {
+    display: none;
+    width: 100%;
+    margin-top: 12px;
+    background: var(--ok);
+    color: #08140d;
+  }
+  #status { margin-top: 16px; min-height: 1.4em; font-size: .95rem; line-height: 1.4; }
+  #status.erro { color: var(--erro); }
+  #status.ok { color: var(--ok); }
+  #status.carregando { color: var(--suave); }
+  .dica { margin-top: 10px; font-size: .85rem; color: var(--suave); line-height: 1.45; display: none; }
+  .aviso { margin-top: 22px; font-size: .8rem; color: var(--suave); line-height: 1.5; }
+  @media (max-width: 480px) {
+    .card { padding: 22px 16px; }
+    h1 { font-size: 1.3rem; }
+    .linha { flex-direction: column; }
+    .linha button { width: 100%; }
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>Baixar vídeo do TikTok e Instagram</h1>
+    <p class="sub">Cole o link, toque em baixar e o vídeo vem em HD, sem marca d'água.</p>
+
+    <form id="form" class="linha">
+      <input id="url" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false"
+             placeholder="Cole o link aqui" required autocomplete="off">
+      <button type="button" class="colar" id="colar" title="Colar da área de transferência">Colar</button>
+      <button type="submit" id="baixar">Baixar</button>
+    </form>
+
+    <div id="status" role="status" aria-live="polite"></div>
+
+    <button type="button" id="salvar">Salvar no celular</button>
+    <p class="dica" id="dica">
+      Se o vídeo não aparecer na galeria, toque em "Salvar no celular" e escolha "Salvar vídeo".
+      No Android, ele também fica na pasta Downloads.
+    </p>
+
+    <p class="aviso">
+      Funciona com posts públicos de TikTok, Reels e vídeos do Instagram.
+      Use apenas para conteúdo seu ou com permissão de quem criou, e respeite os direitos autorais.
+    </p>
+  </main>
+
+<script>
+  const form = document.getElementById("form");
+  const campo = document.getElementById("url");
+  const botao = document.getElementById("baixar");
+  const status = document.getElementById("status");
+  const salvar = document.getElementById("salvar");
+  const dica = document.getElementById("dica");
+
+  let ultimoArquivo = null;
+
+  function mostrar(msg, tipo) {
+    status.textContent = msg;
+    status.className = tipo || "";
+  }
+
+  function baixarArquivo(blob, nome) {
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = nome;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 60000);
+  }
+
+  document.getElementById("colar").addEventListener("click", async () => {
+    try {
+      campo.value = (await navigator.clipboard.readText()).trim();
+      campo.focus();
+    } catch (e) {
+      mostrar("Não consegui acessar a área de transferência. Segure o dedo no campo e escolha Colar.", "erro");
+    }
+  });
+
+  salvar.addEventListener("click", async () => {
+    if (!ultimoArquivo) return;
+    try {
+      await navigator.share({ files: [ultimoArquivo] });
+    } catch (e) {
+      if (e && e.name !== "AbortError") {
+        baixarArquivo(ultimoArquivo, ultimoArquivo.name);
+      }
+    }
+  });
+
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    botao.disabled = true;
+    salvar.style.display = "none";
+    dica.style.display = "none";
+    ultimoArquivo = null;
+    mostrar("Baixando, pode levar alguns segundos...", "carregando");
+
+    try {
+      const resp = await fetch("/api/baixar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: campo.value.trim() })
+      });
+
+      if (!resp.ok) {
+        let msg = "Não foi possível baixar o vídeo.";
+        try { msg = (await resp.json()).erro || msg; } catch (_) {}
+        mostrar(msg, "erro");
+        return;
+      }
+
+      const disp = resp.headers.get("Content-Disposition") || "";
+      const m = disp.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+      const nome = m ? decodeURIComponent(m[1]) : "video.mp4";
+
+      const blob = await resp.blob();
+      const arquivo = new File([blob], nome, { type: blob.type || "video/mp4" });
+      ultimoArquivo = arquivo;
+
+      baixarArquivo(arquivo, nome);
+      mostrar("Pronto! O download começou.", "ok");
+
+      // No celular, oferece o menu de compartilhar, que permite salvar na galeria
+      if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+        salvar.style.display = "block";
+        dica.style.display = "block";
+      }
+    } catch (e) {
+      mostrar("Erro de conexão com o servidor.", "erro");
+    } finally {
+      botao.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
