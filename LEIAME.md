@@ -1,56 +1,87 @@
-# Baixador de vídeos TikTok e Instagram
+# Baixador (visual Windows 7)
 
-Site simples, feito para computador e celular: você cola o link do vídeo, toca em **Baixar** e recebe o arquivo em HD, sem marca d'água.
+Site com 3 abas, que funciona no computador e no celular:
+
+- **Redes sociais:** TikTok e Instagram, em HD e sem marca d'água
+- **YouTube:** vídeo em MP4 (você escolhe a resolução) ou áudio em MP3 (você escolhe a qualidade). Playlists inteiras viram um ZIP.
+- **Spotify:** música, álbum ou playlist em MP3. Álbum e playlist viram ZIP.
 
 ## Arquivos
 
-- `app.py`: servidor (Flask + yt-dlp) que baixa o vídeo
-- `index.html`: a página do site
-- `requirements.txt`: dependências
-- `render.yaml` e `Procfile`: configuração para colocar o site online
+| Arquivo | Para que serve |
+|---|---|
+| `index.html` | A página (visual, abas, barra de progresso) |
+| `app.py` | O servidor que baixa tudo |
+| `requirements.txt` | Lista dos programas que o servidor usa |
+| `render.yaml`, `Procfile` | Configuração para colocar online no Render |
+| `iniciar.bat` | Atalho para rodar no Windows |
+| `.gitignore` | Impede que arquivos secretos (cookies) subam para o GitHub |
 
-## Colocar online para usar no celular (Render, plano grátis)
+## Importante: onde rodar
 
-O GitHub só guarda o código, ele não roda o site. Para abrir no celular, o site precisa estar em um servidor. O jeito mais fácil:
+TikTok, Instagram e principalmente o **YouTube** costumam **bloquear servidores na nuvem** (como o Render). No Render grátis, é provável que o YouTube peça login e que o TikTok recuse. Já no **seu computador, com a internet de casa**, quase sempre funciona.
 
-1. Suba estes arquivos para um repositório no GitHub.
-2. Crie uma conta grátis em render.com (pode entrar com o GitHub).
-3. Clique em **New +** e depois em **Blueprint** (ou **Web Service**) e escolha o seu repositório.
-   - Com Blueprint, o `render.yaml` já configura tudo sozinho.
-   - Com Web Service, use:
-     - Build Command: `pip install -r requirements.txt`
-     - Start Command: `gunicorn app:app --timeout 120 --workers 2`
-4. Espere terminar. O Render vai te dar um endereço como `https://baixador-de-video.onrender.com`.
-5. Abra esse endereço no celular. No Chrome (Android), use o menu ⋮ e **Adicionar à tela inicial**. No iPhone, no Safari, use o botão de compartilhar e **Adicionar à Tela de Início**. Fica como um aplicativo.
+O jeito mais confiável de usar também no celular:
 
-Observações do plano grátis do Render: o site "dorme" depois de uns minutos sem uso, então o primeiro acesso pode demorar cerca de 1 minuto. Os próximos são rápidos.
+1. Rode no seu computador (veja abaixo).
+2. No celular, ligado no **mesmo Wi-Fi**, abra o endereço que aparece no terminal, algo como `http://192.168.0.15:5000`.
 
-Dica: TikTok e Instagram às vezes bloqueiam endereços de servidores na nuvem. Se o site online falhar e no seu computador funcionar, esse costuma ser o motivo.
+## Rodar no computador (Windows)
 
-## Rodar no computador (opcional)
+1. Instale o Python em python.org (marque **Add Python to PATH**).
+2. Dê dois cliques em `iniciar.bat`.
+3. Abra o endereço que aparecer na janela preta. Se o Windows perguntar sobre o firewall, permita (é isso que deixa o celular acessar).
 
-1. Instale o Python 3.9 ou mais novo.
-2. No terminal, dentro desta pasta:
+Em outros sistemas: `pip install -r requirements.txt` e depois `python app.py`.
 
-   ```
-   pip install -r requirements.txt
-   python app.py
-   ```
+## Colocar online no Render (opcional)
 
-3. Abra http://localhost:5000 no navegador.
+1. Suba todos os arquivos para o GitHub (o `index.html` precisa se chamar exatamente `index.html`).
+2. No Render, o serviço atual atualiza sozinho quando você troca os arquivos. Se for novo: **New + > Blueprint** e escolha o repositório.
+3. Espere o deploy. A primeira instalação demora mais, porque agora instala conversor de áudio (ffmpeg) e um motor de JavaScript (deno) que o YouTube exige.
+4. Abra `/saude` no seu endereço (ex.: `https://seu-site.onrender.com/saude?rede=1`). Ele mostra se tudo foi instalado e se TikTok, YouTube e Spotify respondem a esse servidor. Se aparecer `403` ou erro, é bloqueio.
 
-(Opcional) Instale o **ffmpeg**: ajuda o yt-dlp com alguns vídeos do Instagram.
+O plano grátis tem 512 MB de memória e "dorme" após 15 minutos parado, por isso os limites padrão são pequenos (veja abaixo).
 
-## Como o download funciona no celular
+## Se o YouTube pedir login (cookies)
 
-- **Android**: o vídeo vai para a pasta Downloads. Também aparece o botão "Salvar no celular", que abre o menu de compartilhar.
-- **iPhone**: toque em "Salvar no celular" e escolha **Salvar vídeo** para mandar para o app Fotos. Sem isso, o vídeo vai para o app Arquivos.
+Mensagem: *"O YouTube bloqueou este servidor e pediu login"*. A saída é entregar ao servidor os cookies de uma conta Google:
 
-## Observações
+1. Exporte os cookies do YouTube para um arquivo `cookies.txt` (formato Netscape). Cuidado: algumas extensões de "exportar cookies" já foram usadas para roubar dados. Use uma de código aberto e confiável.
+2. **Use uma conta secundária, não a sua principal.** Baixar muito com uma conta pode fazer o Google limitar ou bloquear essa conta.
+3. No Render: **Environment > Secret Files**, crie o arquivo `cookies.txt` com o conteúdo. O site o encontra sozinho em `/etc/secrets/cookies.txt`. No seu computador, defina a variável `COOKIES_FILE` com o caminho.
+4. **Nunca coloque o `cookies.txt` no GitHub.** O repositório é público e qualquer um poderia usar sua conta.
 
-- Só funciona com posts **públicos**. Vídeos privados ou que exigem login falham.
-- TikTok e Instagram mudam as coisas com frequência. Se parar de funcionar, atualize o yt-dlp: `pip install -U yt-dlp` (no Render, é só fazer um novo deploy, que ele pega a versão mais nova).
-- Sobre a marca d'água do TikTok: o programa pede a versão sem marca. Se o TikTok só entregar a versão com marca para algum vídeo específico, ele baixa o que estiver disponível.
-- O Instagram não coloca marca d'água no vídeo original, então o download já vem limpo.
-- Use só para conteúdo seu ou com permissão do autor. Redistribuir vídeo de outras pessoas pode violar direitos autorais e os termos das plataformas.
-- Se for deixar o site aberto para outras pessoas, considere limitar o número de downloads por IP para o servidor não ser abusado.
+Os cookies duram cerca de 2 semanas.
+
+## Spotify: como funciona (e limites)
+
+O Spotify protege o áudio, então **não dá para baixar direto dele**. O site lê a lista de músicas (nome, artista, duração), procura cada uma no YouTube, escolhe o resultado mais parecido e baixa o áudio de lá. Por isso:
+
+- a versão pode ser diferente da do Spotify (ao vivo, outra gravação);
+- depende do YouTube funcionar no servidor (veja a seção acima);
+- ler a lista usa a página pública do Spotify, que ele muda de vez em quando. Se parar de funcionar, crie uma chave grátis em developer.spotify.com e defina `SPOTIFY_CLIENT_ID` e `SPOTIFY_CLIENT_SECRET`.
+
+## Qualidade
+
+- **Vídeo:** a lista de resoluções vem do próprio vídeo. Até 1080p o arquivo sai em H.264, que toca em qualquer celular. 1440p e 4K saem em outro formato (VP9/AV1) dentro do MP4, e alguns iPhones não tocam.
+- **MP3:** você escolhe 128, 192, 256 ou 320 kbps, mas o YouTube guarda o áudio em ~128–160 kbps. 320 não melhora a qualidade, só aumenta o arquivo.
+
+## Limites (mude com variáveis de ambiente)
+
+| Variável | Padrão | O que faz |
+|---|---|---|
+| `MAX_ITENS_AUDIO` | 40 | Músicas por ZIP |
+| `MAX_ITENS_VIDEO` | 10 | Vídeos por ZIP |
+| `MAX_MINUTOS` | 60 | Duração máxima de cada item |
+| `MAX_JOBS` | 2 (1 no Render) | Downloads ao mesmo tempo |
+| `MAX_JOBS_POR_IP` | 2 | Downloads ao mesmo tempo por pessoa |
+| `VALIDADE_MIN` | 20 | Minutos que o arquivo fica disponível |
+
+No seu computador você pode aumentar à vontade (por exemplo `MAX_ITENS_AUDIO=200`).
+
+## Avisos
+
+- Funciona só com conteúdo **público**.
+- Baixar músicas e vídeos de outras pessoas pode violar direitos autorais e os termos de TikTok, Instagram, YouTube e Spotify. Use só com conteúdo seu, livre ou com permissão de quem criou.
+- Se parar de funcionar, atualize o yt-dlp: `pip install -U yt-dlp` (no Render, é só fazer um novo deploy).

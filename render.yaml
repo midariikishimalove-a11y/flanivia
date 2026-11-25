@@ -4,4 +4,8 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --timeout 120 --workers 2
+    # 1 processo com várias threads: a fila de downloads fica na memória do processo
+    startCommand: gunicorn app:app --workers 1 --threads 8 --timeout 300
+    envVars:
+      - key: MAX_JOBS
+        value: "1"
